@@ -1011,6 +1011,117 @@
             padding: 1rem;
             border-top: 1px solid #374151;
         }
+        /* Optimized inspiration2 style for image generation */
+        .inspo2-container {
+            background: transparent;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            max-width: 800px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        .inspo2-header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        .inspo2-main-title {
+            font-size: 3rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+        }
+        .inspo2-subtitle {
+            background: #ffc107;
+            color: #000;
+            padding: 10px 30px;
+            border-radius: 25px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: inline-block;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            border: 3px solid #fff;
+        }
+        .inspo2-matches-container {
+            position: relative;
+            z-index: 1;
+        }
+        .inspo2-match-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            /* Remove background and border for a cleaner look */
+            background: none;
+            border-radius: 0;
+            padding: 0;
+            box-shadow: none;
+            border: none;
+            height: 38px;
+        }
+        .inspo2-team-section {
+            background: #333;
+            color: #ffc107;
+            padding: 6px 10px;
+            border-radius: 8px;
+            flex: 1;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border: 2px solid #ffc107;
+            margin: 0 3px;
+            box-shadow: none;
+        }
+        .inspo2-match-info {
+            background: #ffc107;
+            color: #000;
+            padding: 6px 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            min-width: 90px;
+            margin: 0 3px;
+            box-shadow: none;
+            border: 2px solid #fff;
+        }
+        .inspo2-match-date {
+            display: block;
+            margin-bottom: 0;
+        }
+        .inspo2-match-place {
+            display: block;
+            font-size: 0.8rem;
+        }
+        /* Remove VS separator and lightning */
+        .inspo2-vs-separator, .inspo2-lightning { display: none !important; }
+        @media (max-width: 768px) {
+            .inspo2-container {
+                padding: 20px;
+            }
+            .inspo2-main-title {
+                font-size: 2rem;
+            }
+            .inspo2-match-row {
+                flex-direction: column;
+                gap: 4px;
+                height: auto;
+            }
+            .inspo2-team-section {
+                margin: 0;
+                width: 100%;
+            }
+            .inspo2-match-info {
+                margin: 0;
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1877,7 +1988,6 @@
             const dateMatch = modalTitle.match(/Schedule for (.+)/);
             let dateStr = '';
             if (dateMatch) {
-                // Format: MM/DD/YYYY or locale string
                 dateStr = dateMatch[1];
             }
             // Find the date key in dataByDate
@@ -1890,30 +2000,31 @@
                 }
             }
             const dayMatches = dataByDate[dateKey] || [];
-            const filterTitle = (activeFilterName ? activeFilterName + ' - ' : '') + dateStr;
+            const filterTitle = activeFilterName ? activeFilterName : 'TOURNAMENT SCHEDULE';
+            const subtitle = dateStr || 'FOR THIS DAY';
 
-            // Build HTML for the card
-            let cardHTML = `<div class='schedule-card'>`;
-            cardHTML += `<div class='schedule-card-title'>${filterTitle}</div>`;
-            cardHTML += `<table class='schedule-card-table'>`;
-            cardHTML += `<tr><th>Time</th><th>Teams</th><th>Tournament</th><th>Status</th></tr>`;
+            // Build HTML for the card (optimized inspiration2 format)
+            let cardHTML = `<div class='inspo2-container'>`;
+            cardHTML += `<div class='inspo2-header'>`;
+            cardHTML += `<h1 class='inspo2-main-title'>${filterTitle}</h1>`;
+            cardHTML += `<div class='inspo2-subtitle'>${subtitle}</div>`;
+            cardHTML += `</div>`;
+            cardHTML += `<div class='inspo2-matches-container'>`;
             if (dayMatches.length === 0) {
-                cardHTML += `<tr><td colspan='4' style='color:#fbbf24;'>No matches found</td></tr>`;
+                cardHTML += `<div class='inspo2-match-row'><div class='inspo2-team-section'>NO MATCHES</div></div>`;
             } else {
                 dayMatches.forEach(event => {
                     const eventInfo = parseEventDateTime(event.time);
-                    const status = getEventStatus(eventInfo.date);
-                    cardHTML += `<tr>` +
-                        `<td>${eventInfo.timeStr} PHT</td>` +
-                        `<td>${event.team1} <span style='color:#9ca3af;'>vs</span> ${event.team2}</td>` +
-                        `<td>${event.tournament}</td>` +
-                        `<td><span class='schedule-card-status ${status.status}'>${status.text}</span></td>` +
-                    `</tr>`;
+                    cardHTML += `<div class='inspo2-match-row'>` +
+                        `<div class='inspo2-team-section'>${event.team1}</div>` +
+                        `<div class='inspo2-match-info'>` +
+                            `<span class='inspo2-match-date'>${eventInfo.timeStr} PHT</span>` +
+                        `</div>` +
+                        `<div class='inspo2-team-section'>${event.team2}</div>` +
+                    `</div>`;
                 });
             }
-            cardHTML += `</table>`;
-            cardHTML += `<div class='schedule-card-footer'>Generated by Game Calendar</div>`;
-            cardHTML += `</div>`;
+            cardHTML += `</div></div>`;
 
             // Set card HTML and show
             const card = document.getElementById('scheduleCard');
