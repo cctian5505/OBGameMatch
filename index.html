@@ -931,6 +931,86 @@
                 font-size: 1.25rem;
             }
         }
+        .generate-image-btn {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            margin-top: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .generate-image-btn:hover {
+            background-color: #2563eb;
+        }
+        /* Schedule card for image export */
+        .schedule-card {
+            width: 700px;
+            background: #181a20;
+            color: #fff;
+            border-radius: 1rem;
+            box-shadow: 0 4px 32px #000a;
+            padding: 2rem 2rem 1.5rem 2rem;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0 auto;
+        }
+        .schedule-card-title {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #fbbf24;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .schedule-card-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 0.5rem;
+        }
+        .schedule-card-table th, .schedule-card-table td {
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+        }
+        .schedule-card-table th {
+            background: #23272f;
+            color: #fbbf24;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .schedule-card-table td {
+            background: #23272f;
+            color: #fff;
+            font-size: 1rem;
+        }
+        .schedule-card-table tr:not(:last-child) td {
+            border-bottom: 1px solid #333;
+        }
+        .schedule-card-status {
+            font-weight: bold;
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            display: inline-block;
+        }
+        .schedule-card-status.upcoming { background: #1d4ed8; color: #fff; }
+        .schedule-card-status.ongoing { background: #dc2626; color: #fff; }
+        .schedule-card-status.completed { background: #6b7280; color: #fff; }
+        .schedule-card-footer {
+            text-align: right;
+            font-size: 0.9rem;
+            color: #9ca3af;
+            margin-top: 1rem;
+        }
+        @media (max-width: 700px) {
+            .schedule-card { width: 100vw; padding: 1rem; }
+        }
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            padding: 1rem;
+            border-top: 1px solid #374151;
+        }
     </style>
 </head>
 <body>
@@ -1025,6 +1105,7 @@
                 <div class="month-year" id="tableMonthYear"></div>
                 <div class="active-filter" id="tableActiveFilter"></div>
                 <div class="current-filters" id="tableCurrentFilters"></div>
+                <button class="generate-image-btn" onclick="generateScheduleImage()">Generate Image</button>
             </div>
             <table class="matches-table">
                 <thead>
@@ -1042,6 +1123,9 @@
             </table>
         </div>
 
+        <!-- Hidden schedule card for image export -->
+        <div id="scheduleCard" style="display:none;"></div>
+
         <!-- Modal -->
         <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
             <div class="modal-content" onclick="event.stopPropagation()">
@@ -1055,9 +1139,15 @@
                     </button>
                 </div>
                 <div class="modal-body" id="modalBody"></div>
+                <div class="modal-footer">
+                    <button class="generate-image-btn" id="generateDayImageBtn" style="margin-top:1rem;">Generate Image</button>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Add html2canvas CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
     <script type="module">
         // Import tournament data from external file
@@ -1729,6 +1819,117 @@
         function toggleFiltersPanel() {
             const panel = document.getElementById('filtersPanel');
             panel.classList.toggle('show');
+        }
+
+        // Generate schedule image
+        window.generateScheduleImage = function() {
+            // Get filtered data
+            const data = filteredData;
+            const filterTitle = activeFilterName || 'Tournament Schedule';
+            const monthYear = document.getElementById('tableMonthYear').textContent;
+
+            // Build HTML for the card
+            let cardHTML = `<div class='schedule-card'>`;
+            cardHTML += `<div class='schedule-card-title'>${filterTitle}</div>`;
+            cardHTML += `<div style='text-align:center; color:#9ca3af; margin-bottom:1rem;'>${monthYear}</div>`;
+            cardHTML += `<table class='schedule-card-table'>`;
+            cardHTML += `<tr><th>Date</th><th>Time</th><th>Teams</th><th>Tournament</th><th>Status</th></tr>`;
+            if (data.length === 0) {
+                cardHTML += `<tr><td colspan='5' style='color:#fbbf24;'>No matches found</td></tr>`;
+            } else {
+                data.forEach(event => {
+                    const eventInfo = parseEventDateTime(event.time);
+                    const status = getEventStatus(eventInfo.date);
+                    cardHTML += `<tr>` +
+                        `<td>${new Date(event.time).toLocaleDateString()}</td>` +
+                        `<td>${eventInfo.timeStr} PHT</td>` +
+                        `<td>${event.team1} <span style='color:#9ca3af;'>vs</span> ${event.team2}</td>` +
+                        `<td>${event.tournament}</td>` +
+                        `<td><span class='schedule-card-status ${status.status}'>${status.text}</span></td>` +
+                    `</tr>`;
+                });
+            }
+            cardHTML += `</table>`;
+            cardHTML += `<div class='schedule-card-footer'>Generated by Game Calendar</div>`;
+            cardHTML += `</div>`;
+
+            // Set card HTML and show
+            const card = document.getElementById('scheduleCard');
+            card.innerHTML = cardHTML;
+            card.style.display = 'block';
+
+            // Use html2canvas to capture
+            html2canvas(card, { backgroundColor: null, useCORS: true }).then(canvas => {
+                // Hide card after capture
+                card.style.display = 'none';
+                // Download image
+                const link = document.createElement('a');
+                link.download = `${filterTitle.replace(/\s+/g, '_')}_schedule.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        // Attach event handler for daily image generation
+        document.getElementById('generateDayImageBtn').onclick = function() {
+            // Get the date from the modal title
+            const modalTitle = document.getElementById('modalTitle').textContent;
+            const dateMatch = modalTitle.match(/Schedule for (.+)/);
+            let dateStr = '';
+            if (dateMatch) {
+                // Format: MM/DD/YYYY or locale string
+                dateStr = dateMatch[1];
+            }
+            // Find the date key in dataByDate
+            let dateKey = '';
+            for (const key in dataByDate) {
+                const d = new Date(key);
+                if (d.toLocaleDateString() === dateStr) {
+                    dateKey = key;
+                    break;
+                }
+            }
+            const dayMatches = dataByDate[dateKey] || [];
+            const filterTitle = (activeFilterName ? activeFilterName + ' - ' : '') + dateStr;
+
+            // Build HTML for the card
+            let cardHTML = `<div class='schedule-card'>`;
+            cardHTML += `<div class='schedule-card-title'>${filterTitle}</div>`;
+            cardHTML += `<table class='schedule-card-table'>`;
+            cardHTML += `<tr><th>Time</th><th>Teams</th><th>Tournament</th><th>Status</th></tr>`;
+            if (dayMatches.length === 0) {
+                cardHTML += `<tr><td colspan='4' style='color:#fbbf24;'>No matches found</td></tr>`;
+            } else {
+                dayMatches.forEach(event => {
+                    const eventInfo = parseEventDateTime(event.time);
+                    const status = getEventStatus(eventInfo.date);
+                    cardHTML += `<tr>` +
+                        `<td>${eventInfo.timeStr} PHT</td>` +
+                        `<td>${event.team1} <span style='color:#9ca3af;'>vs</span> ${event.team2}</td>` +
+                        `<td>${event.tournament}</td>` +
+                        `<td><span class='schedule-card-status ${status.status}'>${status.text}</span></td>` +
+                    `</tr>`;
+                });
+            }
+            cardHTML += `</table>`;
+            cardHTML += `<div class='schedule-card-footer'>Generated by Game Calendar</div>`;
+            cardHTML += `</div>`;
+
+            // Set card HTML and show
+            const card = document.getElementById('scheduleCard');
+            card.innerHTML = cardHTML;
+            card.style.display = 'block';
+
+            // Use html2canvas to capture
+            html2canvas(card, { backgroundColor: null, useCORS: true }).then(canvas => {
+                // Hide card after capture
+                card.style.display = 'none';
+                // Download image
+                const link = document.createElement('a');
+                link.download = `${filterTitle.replace(/\s+/g, '_')}_schedule.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
         }
     </script>
 </body>
